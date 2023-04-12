@@ -1,0 +1,99 @@
+#include <cmath>
+#include <iostream>
+#include <string>
+#include <vector>
+#include <random>
+
+int width, height, numberOfParticles;
+
+bool isOnEdge(int i, int j){
+  return i == 0 || i == height -1 || j == 0 || j == width -1;
+}
+
+int main() {
+
+  std::cout << "Define the height (m) of the mxn grid: \n";
+  std::cin >> height;
+
+  std::cout << "Define the width (n) of the mxn grid: \n";
+  std::cin >> width;
+
+  int numberOfEdgeElements = 2*(width) + 2*(height - 2);
+  
+  std::cout << "Define the number of particles (must be smaller than "  
+  << numberOfEdgeElements <<"): \n";
+  std::cin >> numberOfParticles;
+
+
+  if (numberOfParticles >= numberOfEdgeElements){
+    std::cerr << "Edges are fully filled. Make sure that number of particles < 2n+2(m-2) \n ";
+  } 
+  
+  //making a 2D boolean matrix with a vector:
+  std::vector <std::vector<bool>> grid(width);
+    for (int i = 0; i < width; i++) {
+     grid[i] = std::vector<bool>(height, false);
+    }
+
+  //making the center particle true:
+  const int x = width/2;
+  const int y = height/2;
+  grid[x][y] = true;
+
+  //generating a random number to decide movement of a particle:
+  std::random_device posRd;
+  std::uniform_int_distribution<int> posDist(1,8);
+  std::cout << posDist(posRd) << "\n";
+
+  //add particles to edge of the grid:
+  int ParticleInit = 0;
+
+  while(ParticleInit < numberOfParticles){
+    for (int i = 0; i < height; i++) {
+      if (rand() % 2 == 0) { //if random number = 0 ==> add particle. If 1 dont add.
+        grid[i][0] = 1; // particle on left side (true)
+        ParticleInit ++;
+      }
+      if (rand() % 2 == 0) { 
+        grid[i][width-1] = 1; // particle on right side 
+        //height -1 want is array dus begint van 0
+        ParticleInit ++;
+      }
+      if (ParticleInit >= numberOfParticles/2) { // exit loop if desired number of particles have been added
+        break;
+      }
+    }
+ 
+    // Add random particles to the top and bottom sides of the grid
+    for (int j = 0; j < height; j++) {
+      if (rand() % 2 == 0) {
+        grid[0][j] = 1; // particle on top side
+        ParticleInit ++;
+      }
+      if (rand() % 2 == 0) {
+        grid[height-1][j] = 1; // particle on bottom side
+        ParticleInit ++;
+      }
+      if (ParticleInit >= numberOfParticles) { // exit loop if desired number of particles have been added
+        break;
+      }
+    }
+  }
+
+  for (int i = 0; i < height; i++) {
+        for (int j = 0; j < width; j++) {
+            if (grid[i][j]) {
+                std::cout << "*";
+            } else {
+                std::cout << " ";
+            }
+        }
+        std::cout << "\n";
+    }
+
+  //All that's left is making all these particles movable 
+
+}
+
+
+   
