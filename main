@@ -3,114 +3,95 @@
 #include <random>
 #include <string>
 #include <vector>
+#include <cstdlib>
+#include <ctime>
 
 int width, height, numberOfParticles;
 int steps = 0;
-int MaxSteps = 50;
+int MaxSteps = 500;
 int ParticleInit = 0;
+bool isFirstMove = true;
 
 std::random_device rd;
-std::mt19937 gen(rd());
+std::mt19937 gen(rd());    
 std::uniform_int_distribution<> dis(1, 8);
 
-int direction =dis(gen);
-
-bool isStuck(int i, int j, const std::vector<std::vector<bool>>& grid) {
-     return i >= 0 && i < height && j >= 0 && j < width && grid[i][j];
+//is particle on the edge of the grid
+bool isOnEdge(int i,int j,const std::vector<std::vector<bool>>& grid) {
+  if (i < 0 || i >= height -1 || j < 0 || j >= width -1) return true;
+  else {
+    return false;
+  }
 }
 
-bool isAdjacentStuck(int i, int j, const std::vector<std::vector<bool>>& grid) {
-    return isStuck(i-1, j, grid) || isStuck(i+1, j, grid) ||
-           isStuck(i, j-1, grid) || isStuck(i, j+1, grid);
+//is particle next to other particle?
+bool IsAdjacent(int& i,int& j,const std::vector<std::vector<bool>>& grid){
+  if (grid[i-1][j] || grid[i+1][j] || grid[i][j-1] || grid[i][j+1]) return true;
+  else {
+    return false;
+  }
 }
 
-void Direction(int& i, int& j){
-  if (direction == 1){
-       i ++;
-      }
-      else if (direction == 2){
-        i ++;
-        j ++;
-      }
-      else if (direction == 3){
-        j ++; 
-      }
-      else if (direction == 4){
-        i --;
-        j ++; 
-     }
-      else if (direction == 5){
+bool BecomeStuck(int& i, int& j, std::vector<std::vector<bool>>& grid, bool& isFirstMove){
+  if (IsAdjacent(i, j,grid) || isOnEdge(i, j,grid) && isFirstMove == false) return true;
+  else {
+    return false;
+  }
+}
+
+void MoveParticle(int& i, int& j, std::vector<std::vector<bool>>& grid, bool& isFirstMove){
+  
+  if (isFirstMove){
+    if (j == 0) {
+      j++;
+    } else if (j == width - 1) {
+      j--;
+    } else if (i == 0) {
+      i++;
+    } else {
+      i--;
+    }
+     //now first moves should be done, so set it to false
+    isFirstMove = false;
+  } else{
+      if (BecomeStuck(i, j,grid, isFirstMove)){
+        grid[i][j] = true;
+     } else{
+    //Particle position will now get changed but the position before this needs to be     forgotten otherwise it will always be adjescent to another particle:
+      int prev_i = i;
+      int prev_j = j;
+         grid[prev_i][prev_j] = false; // remove previous position from grid
+
+     int direction = dis(gen);
+
+      if (direction == 1) {
+        i++;
+      } else if (direction == 2) {
+        i++;
+        j++;
+      } else if (direction == 3) {
+        j++;
+      } else if (direction == 4) {
         i--;
-      }
-      else if (direction == 6){
-       i --;
-       j --;
-      }
-      else if (direction == 7){
+        j++;
+      } else if (direction == 5) {
+        i--;
+      } else if (direction == 6) {
+        i--;
+        j--;
+      } else if (direction == 7) {
+        j--;
+      } else {
+        i++;
         j--;
       }
-      else {
-        i ++;
-       j --;
-      }
-}
-
-
-void Movement_j(int& i, int& j, std::vector<std::vector<bool>>& grid){
-  
-  while (true && steps < MaxSteps) {
-    if(isStuck(i,j,grid)){
-      break;
-    }
-    if(isAdjacentStuck(i,j,grid)){
-     grid[i][j] = true; // Stick to the existing cluster
-      break;
-    }
-    
-    if (j > 0){
-      j --;
-    }
-    else if (j < width -1){
-      j ++;
-    }
-    else{
-      Direction(i,j);
-    }
-  steps ++;
-  if (steps >= MaxSteps){
-     break;
-   }
-  }
-}
-
-void Movement_i(int& i, int& j, std::vector<std::vector<bool>>& grid){
-  while (true && steps < MaxSteps) {
-  if(isStuck(i,j,grid)){
-      break;
-    }
-    if(isAdjacentStuck(i,j,grid)){
-     grid[i][j] = true;
-      break;
-    }
-    
-    if (i > 0 ){
-      i --;
-    }
-    if (i <= height -1){
-      i ++;
-    }
-  else{
-      Direction(i,j);
-    }
-  steps ++;
-  if (steps >= MaxSteps) {
-      break;
+    //put new positions as true
+    grid[i][j] = true;
     }
   }
 }
 
-int main() {
-
+int main(){
   std::cout << "Define the height (m) of the mxn grid: \n";
   std::cin >> height;
 
@@ -126,12 +107,13 @@ int main() {
   if (numberOfParticles >= numberOfEdgeElements) {
     std::cerr << "Edges are fully filled. Make sure that number of particles < "
                  "2n+2(m-2) \n ";
+    return 1;
   }
 
   // making a 2D boolean matrix with a vector:
-  std::vector<std::vector<bool>> grid(width);
-  for (int i = 0; i < width; i++) {
-    grid[i] = std::vector<bool>(height, false);
+  std::vector<std::vector<bool>> grid(height);
+  for (int i = 0; i < height; i++) {
+    grid[i] = std::vector<bool>(width, false);
   }
   
   // making the center particle true:
@@ -139,57 +121,44 @@ int main() {
   const int y = height / 2;
   grid[x][y] = true;
 
+   // Seed the random number generator with the current time
+    std::srand(std::time(nullptr));
 
-  // add particles to edge of the grid:
+
   while (ParticleInit < numberOfParticles) {
-    for (int i = 0; i < height; i++) {
-       if (ParticleInit >= numberOfParticles/4) {
-            break;
-        }
-      if (rand() % 2 ==0) {// if random number = 0 ==> add particle. If 1 dont add.
-        grid[i][0] = 1; // particle on left side (true)
-        Movement_j(i, 0, grid); // move the particle to a neighboring position
-        ParticleInit++;
+    for (int k = 0; k < height; k++){
+      int i = 0;
+      int j = 0;
+      
+      //starting position of the particle:
+      int side = std::rand() % 4 + 1;  // Generate a random number between 1         and 4
+      if (side == 1){ // i , j=0
+        // Choose a random row index on the chosen column
+          i = std::rand() % (height - 1);
+            grid[i][0] = true;
+      } else if (side ==2){ //i , j = width -1
+          i = std::rand() % (height - 1);
+            grid[i][width-1] = true;
+      } else if(side == 3){ //i=0, j
+        j = std::rand() % (width - 1);
+          grid[0][j] = true;
+      } else { //i = height -1, j
+        j = std::rand() % (width - 1);
+          grid[height-1][j] = true;
+      }
+      
+      while (!BecomeStuck(i, j, grid, isFirstMove) && steps < MaxSteps) {
+        MoveParticle(i, j, grid, isFirstMove);
+        steps++;
       }
     }
-     for (int i = 1; i < height-1; i++) {
-      if (ParticleInit >= numberOfParticles/2) {
-            break;
-       if (rand() % 2 == 0) {
-        grid[i][width - 1] = 1; // particle on right side
-        // height -1 want is array dus begint van 0
-        Movement_j(i, width-1, grid);
-        ParticleInit++;
-      }
-      }
-    }
-
-    // Add random particles to the top and bottom sides of the grid
-    for (int j = 0; j < height; j++) {
-      if (ParticleInit >= 3*numberOfParticles/4){
-        break;
-      }
-      if (rand() % 2 == 0) {
-        grid[0][j] = 1; // particle on top side
-        Movement_i(0, j, grid);
-        ParticleInit++;
-      }
-    }
-    for (int j = 0; j < height; j++) {
-      if (ParticleInit >= numberOfParticles){
-        break;
-      }
-      if (rand() % 2 == 0) {
-        grid[height - 1][j] = 1; // particle on bottom side
-        Movement_i(height-1,j,grid);
-        ParticleInit++;
-      }
-    }
+    ParticleInit ++;
   }
- 
+
+  //print to console
   for (int i = 0; i < height; i++) {
     for (int j = 0; j < width; j++) {
-      if (grid[i][j] == 1) {
+      if (grid[i][j]) {
         std::cout << "*";
       } else {
         std::cout << " ";
@@ -197,5 +166,5 @@ int main() {
     }
     std::cout << "\n";
   }
-
+  
 }
