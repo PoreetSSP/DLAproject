@@ -8,7 +8,7 @@
 
 int width, height, numberOfParticles;
 int steps = 0;
-int MaxSteps = 500;
+int MaxSteps = 50000;
 int ParticleInit = 0;
 bool isFirstMove = true;
 
@@ -18,30 +18,32 @@ std::uniform_int_distribution<> dis(1, 8);
 
 //is particle on the edge of the grid
 bool isOnEdge(int i,int j,const std::vector<std::vector<bool>>& grid) {
-  if (i < 0 || i >= height -1 || j < 0 || j >= width -1) return true;
+  if (i <= 0 || i >= height - 1 || j <= 0 || j >= width - 1) return true;
   else {
     return false;
   }
 }
 
 //is particle next to other particle?
-bool IsAdjacent(int& i,int& j,const std::vector<std::vector<bool>>& grid){
-  if (grid[i-1][j] || grid[i+1][j] || grid[i][j-1] || grid[i][j+1]) return true;
-  else {
-    return false;
-  }
-}
-
-bool BecomeStuck(int& i, int& j, std::vector<std::vector<bool>>& grid, bool& isFirstMove){
-  if (IsAdjacent(i, j,grid) || isOnEdge(i, j,grid) && isFirstMove == false) return true;
-  else {
-    return false;
-  }
+bool IsAdjacent(int& i,int& j, int& width, int& height, const std::vector<std::vector<bool>>& grid){
+  if (i > 0 && grid[i-1][j]) return true;
+  if (j > 0 && grid[i][j-1]) return true;
+  if (i < height-1 && grid[i+1][j]) return true;
+  if (j < width-1 && grid[i][j+1]) return true;
+  if (i == height/2 && j == width/2) return true; // check for center element
+  if (i > 0 && j > 0 && grid[i-1][j-1] && i-1 == height/2 && j-1 == width/2) return   
+    true; // check for top left adjacent element
+  if (i > 0 && j < width-1 && grid[i-1][j+1] && i-1 == height/2 && j+1 == width/2) 
+    return true; // check for top right adjacent element
+  if (i < height-1 && j > 0 && grid[i+1][j-1] && i+1 == height/2 && j-1 == width/2) 
+    return true; // check for bottom left adjacent element
+  if (i < height-1 && j < width-1 && grid[i+1][j+1] && i+1 == height/2 && j+1 == width/2) return true; // check for bottom right adjacent element
+  return false;
 }
 
 void MoveParticle(int& i, int& j, std::vector<std::vector<bool>>& grid, bool& isFirstMove){
-  
-  if (isFirstMove){
+
+  if (isFirstMove || isOnEdge(i, j, grid)){
     if (j == 0) {
       j++;
     } else if (j == width - 1) {
@@ -51,18 +53,12 @@ void MoveParticle(int& i, int& j, std::vector<std::vector<bool>>& grid, bool& is
     } else {
       i--;
     }
-     //now first moves should be done, so set it to false
-    isFirstMove = false;
   } else{
-      if (BecomeStuck(i, j,grid, isFirstMove)){
-        grid[i][j] = true;
-     } else{
-    //Particle position will now get changed but the position before this needs to be     forgotten otherwise it will always be adjescent to another particle:
       int prev_i = i;
       int prev_j = j;
-         grid[prev_i][prev_j] = false; // remove previous position from grid
-
-     int direction = dis(gen);
+      grid[prev_i][prev_j] = false; // remove previous position from grid
+     
+      int direction = dis(gen);
 
       if (direction == 1) {
         i++;
@@ -85,11 +81,14 @@ void MoveParticle(int& i, int& j, std::vector<std::vector<bool>>& grid, bool& is
         i++;
         j--;
       }
-    //put new positions as true
-    grid[i][j] = true;
-    }
   }
+   if (i < 0 || i >= height || j < 0 || j >= width) return;  
+    grid[i][j] = true;
+    
+  isFirstMove = false;
+
 }
+  
 
 int main(){
   std::cout << "Define the height (m) of the mxn grid: \n";
@@ -126,6 +125,7 @@ int main(){
 
 
   while (ParticleInit < numberOfParticles) {
+    steps = 0;
     for (int k = 0; k < height; k++){
       int i = 0;
       int j = 0;
@@ -147,12 +147,12 @@ int main(){
           grid[height-1][j] = true;
       }
       
-      while (!BecomeStuck(i, j, grid, isFirstMove) && steps < MaxSteps) {
+      while (!IsAdjacent(i, j, width,height, grid) && steps < MaxSteps) {
         MoveParticle(i, j, grid, isFirstMove);
         steps++;
       }
+        ParticleInit++;
     }
-    ParticleInit ++;
   }
 
   //print to console
