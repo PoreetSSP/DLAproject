@@ -1,4 +1,4 @@
- #include <cmath>
+#include <cmath>
 #include <iostream>
 #include <random>
 #include <string>
@@ -8,9 +8,8 @@
 
 int width, height, numberOfParticles;
 int steps = 0;
-int MaxSteps = 50000000;
+int MaxSteps = 100000;
 int ParticleInit = 0;
-bool isFirstMove = true;
 
 std::random_device rd;
 std::mt19937 gen(rd());    
@@ -24,31 +23,31 @@ bool isOnEdge(int i,int j,const std::vector<std::vector<bool>>& grid) {
   }
 }
  
-//is particle next to other particle?
-bool IsAdjacentToCenter(int i, int j, const std::vector<std::vector<bool>>& grid) {
+//is particle next to center particle?
+bool hasDeadNeighbour(int i, int j, const std::vector<std::vector<bool>>& grid) {
   // Check if the particle is adjacent to the center particle
-  if ((i == height / 2 && j == width / 2) ||
-      (i > 0 && grid[i - 1][j] && (i - 1 == height / 2 || i - 1 == height / 2 - 1) && j == width / 2) ||
-      (j > 0 && grid[i][j - 1] && i == height / 2 && (j - 1 == width / 2 || j - 1 == width / 2 - 1)) ||
-      (i < height - 1 && grid[i + 1][j] && (i + 1 == height / 2 || i + 1 == height / 2 + 1) && j == width / 2) ||
-      (j < width - 1 && grid[i][j + 1] && i == height / 2 && (j + 1 == width / 2 || j + 1 == width / 2 + 1))) {
-    return true;
-  }
-  return false;
-}
+  int middleI = height / 2;
+  int middleJ = width / 2;
 
-bool isAdjacentToCluster(int i, int j,const std::vector<std::vector<bool>>& grid){
-    // Check if the particle is adjacent to another particle connected to the center particle
-    if (i > 0 && j > 0 && grid[i-1][j-1] && IsAdjacentToCenter(i-1, j-1, grid)) return true;
-    if (i > 0 && j < width-1 && grid[i-1][j+1] && IsAdjacentToCenter(i-1, j+1, grid)) return true;
-    if (i < height-1 && j > 0 && grid[i+1][j-1] && IsAdjacentToCenter(i+1, j-1, grid)) return true;
-    if (i < height-1 && j < width-1 && grid[i+1][j+1] && IsAdjacentToCenter(i+1, j+1, grid)) return true;
+    std::vector<std::pair<int, int>> coordsToCheck { //make a pair of 2 coordinates
+        {1, 0}, {0, -1}, {0, 1}, {-1, 0},
+        {1, 1}, {1, -1}, {-1, 1}, {-1, -1} 
+    };
+
+    for (std::pair<int, int> coords : coordsToCheck) { 
+        if (grid[middleI + coords.first][middleJ + coords.second]) { //bv grid[height/2 +1][width/2 +0]
+            return true;
+        }
+    }
     return false;
 }
 
-void MoveParticle(int& i, int& j, std::vector<std::vector<bool>>& grid, bool& isFirstMove){
+}
 
-  if (isFirstMove || isOnEdge(i, j, grid)){
+void MoveParticle(int& i, int& j, std::vector<std::vector<bool>>& grid){
+
+  }
+  if (isOnEdge(i, j, grid)){
     if (j == 0) {
       j++;
     } else if (j == width - 1) {
@@ -57,12 +56,12 @@ void MoveParticle(int& i, int& j, std::vector<std::vector<bool>>& grid, bool& is
       i++;
     } else {
       i--;
-    }
+    }  grid[i][j] = true;
   } else{
       int prev_i = i;
       int prev_j = j;
       grid[prev_i][prev_j] = false; // remove previous position from grid
-     
+    
       int direction = dis(gen);
 
       if (direction == 1) {
@@ -86,11 +85,11 @@ void MoveParticle(int& i, int& j, std::vector<std::vector<bool>>& grid, bool& is
         i++;
         j--;
       }
+     
+      if (hasDeadNeighbour(i, j, grid)) {
+        grid[i][j] = true;
+      }
   }
-   if (i < 0 || i >= height || j < 0 || j >= width) return;  
-  grid[i][j] = true;
-    
-  isFirstMove = false;
 }
   
 
@@ -143,7 +142,7 @@ int main(){
       }
       
       while (!IsAdjacentToCenter(i, j, grid) && !isAdjacentToCluster(i,j,grid) && steps < MaxSteps) {
-        MoveParticle(i, j, grid, isFirstMove);
+        MoveParticle(i, j, grid);
         steps++;
       }
         ParticleInit++;
