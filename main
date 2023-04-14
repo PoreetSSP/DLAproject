@@ -1,13 +1,106 @@
 #include <cmath>
 #include <iostream>
+#include <random>
 #include <string>
 #include <vector>
-#include <random>
 
 int width, height, numberOfParticles;
+int steps = 0;
+int MaxSteps = 50;
+int ParticleInit = 0;
 
-bool isOnEdge(int i, int j){
-  return i == 0 || i == height -1 || j == 0 || j == width -1;
+std::random_device rd;
+std::mt19937 gen(rd());
+std::uniform_int_distribution<> dis(1, 8);
+
+int direction =dis(gen);
+
+bool isStuck(int i, int j, const std::vector<std::vector<bool>>& grid) {
+     return i >= 0 && i < height && j >= 0 && j < width && grid[i][j];
+}
+
+bool isAdjacentStuck(int i, int j, const std::vector<std::vector<bool>>& grid) {
+    return isStuck(i-1, j, grid) || isStuck(i+1, j, grid) ||
+           isStuck(i, j-1, grid) || isStuck(i, j+1, grid);
+}
+
+void Direction(int& i, int& j){
+  if (direction == 1){
+       i ++;
+      }
+      else if (direction == 2){
+        i ++;
+        j ++;
+      }
+      else if (direction == 3){
+        j ++; 
+      }
+      else if (direction == 4){
+        i --;
+        j ++; 
+     }
+      else if (direction == 5){
+        i--;
+      }
+      else if (direction == 6){
+       i --;
+       j --;
+      }
+      else if (direction == 7){
+        j--;
+      }
+      else {
+        i ++;
+       j --;
+      }
+}
+
+
+void Movement_j(int& i, int& j, std::vector<std::vector<bool>>& grid){
+  
+  while (true && steps < MaxSteps) {
+    if(isStuck(i,j,grid)){
+      break;
+    }
+    if(isAdjacentStuck(i,j,grid)){
+     grid[i][j] = true; // Stick to the existing cluster
+      break;
+    }
+    
+    if (j > 0){
+      j --;
+    }
+    else if (j < width -1){
+      j ++;
+    }
+    else{
+      Direction(i,j);
+    }
+  steps ++;
+    }
+}
+
+void Movement_i(int& i, int& j, std::vector<std::vector<bool>>& grid){
+  while (true && steps < MaxSteps) {
+  if(isStuck(i,j,grid)){
+      break;
+    }
+    if(isAdjacentStuck(i,j,grid)){
+     grid[i][j] = true;
+      break;
+    }
+    
+    if (i > 0 ){
+      i --;
+    }
+    if (i <= height -1){
+      i ++;
+    }
+  else{
+      Direction(i,j);
+    }
+  steps ++;
+  }
 }
 
 int main() {
@@ -18,82 +111,85 @@ int main() {
   std::cout << "Define the width (n) of the mxn grid: \n";
   std::cin >> width;
 
-  int numberOfEdgeElements = 2*(width) + 2*(height - 2);
-  
-  std::cout << "Define the number of particles (must be smaller than "  
-  << numberOfEdgeElements <<"): \n";
+  int numberOfEdgeElements = 2 * (width) + 2 * (height - 2);
+
+  std::cout << "Define the number of particles (must be smaller than "
+            << numberOfEdgeElements << "): \n";
   std::cin >> numberOfParticles;
 
+  if (numberOfParticles >= numberOfEdgeElements) {
+    std::cerr << "Edges are fully filled. Make sure that number of particles < "
+                 "2n+2(m-2) \n ";
+  }
 
-  if (numberOfParticles >= numberOfEdgeElements){
-    std::cerr << "Edges are fully filled. Make sure that number of particles < 2n+2(m-2) \n ";
-  } 
+  // making a 2D boolean matrix with a vector:
+  std::vector<std::vector<bool>> grid(width);
+  for (int i = 0; i < width; i++) {
+    grid[i] = std::vector<bool>(height, false);
+  }
   
-  //making a 2D boolean matrix with a vector:
-  std::vector <std::vector<bool>> grid(width);
-    for (int i = 0; i < width; i++) {
-     grid[i] = std::vector<bool>(height, false);
-    }
-
-  //making the center particle true:
-  const int x = width/2;
-  const int y = height/2;
+  // making the center particle true:
+  const int x = width / 2;
+  const int y = height / 2;
   grid[x][y] = true;
 
-  //generating a random number to decide movement of a particle:
-  std::random_device posRd;
-  std::uniform_int_distribution<int> posDist(1,8);
-  std::cout << posDist(posRd) << "\n";
 
-  //add particles to edge of the grid:
-  int ParticleInit = 0;
-
-  while(ParticleInit < numberOfParticles){
+  // add particles to edge of the grid:
+  while (ParticleInit < numberOfParticles) {
     for (int i = 0; i < height; i++) {
-      if (rand() % 2 == 0) { //if random number = 0 ==> add particle. If 1 dont add.
+       if (ParticleInit >= numberOfParticles/4) {
+            break;
+        }
+      if (rand() % 2 ==0) {// if random number = 0 ==> add particle. If 1 dont add.
         grid[i][0] = 1; // particle on left side (true)
-        ParticleInit ++;
-      }
-      if (rand() % 2 == 0) { 
-        grid[i][width-1] = 1; // particle on right side 
-        //height -1 want is array dus begint van 0
-        ParticleInit ++;
-      }
-      if (ParticleInit >= numberOfParticles/2) { // exit loop if desired number of particles have been added
-        break;
+        Movement_j(i, 0, grid); // move the particle to a neighboring position
+        ParticleInit++;
       }
     }
- 
+     for (int i = 1; i < height-1; i++) {
+      if (ParticleInit >= numberOfParticles/2) {
+            break;
+       if (rand() % 2 == 0) {
+        grid[i][width - 1] = 1; // particle on right side
+        // height -1 want is array dus begint van 0
+        Movement_j(i, width-1, grid);
+        ParticleInit++;
+      }
+      }
+    }
+
     // Add random particles to the top and bottom sides of the grid
     for (int j = 0; j < height; j++) {
+      if (ParticleInit >= 3*numberOfParticles/4){
+        break;
+      }
       if (rand() % 2 == 0) {
         grid[0][j] = 1; // particle on top side
-        ParticleInit ++;
+        Movement_i(0, j, grid);
+        ParticleInit++;
+      }
+    }
+    for (int j = 0; j < height; j++) {
+      if (ParticleInit >= numberOfParticles){
+        break;
       }
       if (rand() % 2 == 0) {
-        grid[height-1][j] = 1; // particle on bottom side
-        ParticleInit ++;
-      }
-      if (ParticleInit >= numberOfParticles) { // exit loop if desired number of particles have been added
-        break;
+        grid[height - 1][j] = 1; // particle on bottom side
+        Movement_i(height-1,j,grid);
+        ParticleInit++;
       }
     }
   }
-
+ 
   for (int i = 0; i < height; i++) {
-        for (int j = 0; j < width; j++) {
-            if (grid[i][j]) {
-                std::cout << "*";
-            } else {
-                std::cout << " ";
-            }
-        }
-        std::cout << "\n";
+    for (int j = 0; j < width; j++) {
+      if (grid[i][j] == 1) {
+        std::cout << "*";
+      } else {
+        std::cout << " ";
+      }
     }
-
-  //All that's left is making all these particles movable 
+    std::cout << "\n";
+  }
 
 }
-
-
-   
