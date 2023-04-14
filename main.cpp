@@ -1,4 +1,4 @@
-#include <cmath>
+ #include <cmath>
 #include <iostream>
 #include <random>
 #include <string>
@@ -8,7 +8,7 @@
 
 int width, height, numberOfParticles;
 int steps = 0;
-int MaxSteps = 50000;
+int MaxSteps = 50000000;
 int ParticleInit = 0;
 bool isFirstMove = true;
 
@@ -23,22 +23,27 @@ bool isOnEdge(int i,int j,const std::vector<std::vector<bool>>& grid) {
     return false;
   }
 }
-
+ 
 //is particle next to other particle?
-bool IsAdjacent(int& i,int& j, int& width, int& height, const std::vector<std::vector<bool>>& grid){
-  if (i > 0 && grid[i-1][j]) return true;
-  if (j > 0 && grid[i][j-1]) return true;
-  if (i < height-1 && grid[i+1][j]) return true;
-  if (j < width-1 && grid[i][j+1]) return true;
-  if (i == height/2 && j == width/2) return true; // check for center element
-  if (i > 0 && j > 0 && grid[i-1][j-1] && i-1 == height/2 && j-1 == width/2) return   
-    true; // check for top left adjacent element
-  if (i > 0 && j < width-1 && grid[i-1][j+1] && i-1 == height/2 && j+1 == width/2) 
-    return true; // check for top right adjacent element
-  if (i < height-1 && j > 0 && grid[i+1][j-1] && i+1 == height/2 && j-1 == width/2) 
-    return true; // check for bottom left adjacent element
-  if (i < height-1 && j < width-1 && grid[i+1][j+1] && i+1 == height/2 && j+1 == width/2) return true; // check for bottom right adjacent element
+bool IsAdjacentToCenter(int i, int j, const std::vector<std::vector<bool>>& grid) {
+  // Check if the particle is adjacent to the center particle
+  if ((i == height / 2 && j == width / 2) ||
+      (i > 0 && grid[i - 1][j] && (i - 1 == height / 2 || i - 1 == height / 2 - 1) && j == width / 2) ||
+      (j > 0 && grid[i][j - 1] && i == height / 2 && (j - 1 == width / 2 || j - 1 == width / 2 - 1)) ||
+      (i < height - 1 && grid[i + 1][j] && (i + 1 == height / 2 || i + 1 == height / 2 + 1) && j == width / 2) ||
+      (j < width - 1 && grid[i][j + 1] && i == height / 2 && (j + 1 == width / 2 || j + 1 == width / 2 + 1))) {
+    return true;
+  }
   return false;
+}
+
+bool isAdjacentToCluster(int i, int j,const std::vector<std::vector<bool>>& grid){
+    // Check if the particle is adjacent to another particle connected to the center particle
+    if (i > 0 && j > 0 && grid[i-1][j-1] && IsAdjacentToCenter(i-1, j-1, grid)) return true;
+    if (i > 0 && j < width-1 && grid[i-1][j+1] && IsAdjacentToCenter(i-1, j+1, grid)) return true;
+    if (i < height-1 && j > 0 && grid[i+1][j-1] && IsAdjacentToCenter(i+1, j-1, grid)) return true;
+    if (i < height-1 && j < width-1 && grid[i+1][j+1] && IsAdjacentToCenter(i+1, j+1, grid)) return true;
+    return false;
 }
 
 void MoveParticle(int& i, int& j, std::vector<std::vector<bool>>& grid, bool& isFirstMove){
@@ -83,10 +88,9 @@ void MoveParticle(int& i, int& j, std::vector<std::vector<bool>>& grid, bool& is
       }
   }
    if (i < 0 || i >= height || j < 0 || j >= width) return;  
-    grid[i][j] = true;
+  grid[i][j] = true;
     
   isFirstMove = false;
-
 }
   
 
@@ -97,17 +101,8 @@ int main(){
   std::cout << "Define the width (n) of the mxn grid: \n";
   std::cin >> width;
 
-  int numberOfEdgeElements = 2 * (width) + 2 * (height - 2);
-
-  std::cout << "Define the number of particles (must be smaller than "
-            << numberOfEdgeElements << "): \n";
+  std::cout << "Define the number of particles: \n";
   std::cin >> numberOfParticles;
-
-  if (numberOfParticles >= numberOfEdgeElements) {
-    std::cerr << "Edges are fully filled. Make sure that number of particles < "
-                 "2n+2(m-2) \n ";
-    return 1;
-  }
 
   // making a 2D boolean matrix with a vector:
   std::vector<std::vector<bool>> grid(height);
@@ -131,7 +126,7 @@ int main(){
       int j = 0;
       
       //starting position of the particle:
-      int side = std::rand() % 4 + 1;  // Generate a random number between 1         and 4
+      int side = std::rand() % 4 + 1;  // Generate a random number between 1 and 4
       if (side == 1){ // i , j=0
         // Choose a random row index on the chosen column
           i = std::rand() % (height - 1);
@@ -147,7 +142,7 @@ int main(){
           grid[height-1][j] = true;
       }
       
-      while (!IsAdjacent(i, j, width,height, grid) && steps < MaxSteps) {
+      while (!IsAdjacentToCenter(i, j, grid) && !isAdjacentToCluster(i,j,grid) && steps < MaxSteps) {
         MoveParticle(i, j, grid, isFirstMove);
         steps++;
       }
