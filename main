@@ -77,7 +77,10 @@ void Movement_j(int& i, int& j, std::vector<std::vector<bool>>& grid){
       Direction(i,j);
     }
   steps ++;
-    }
+  if (steps >= MaxSteps){
+     break;
+   }
+  }
 }
 
 void Movement_i(int& i, int& j, std::vector<std::vector<bool>>& grid){
@@ -100,6 +103,9 @@ void Movement_i(int& i, int& j, std::vector<std::vector<bool>>& grid){
       Direction(i,j);
     }
   steps ++;
+  if (steps >= MaxSteps) {
+      break;
+    }
   }
 }
 
